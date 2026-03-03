@@ -5,6 +5,18 @@ import opensim as osim
 import numpy as np
 from tkinter import filedialog
 
+"""
+Run this code to convert c3d files to trc and mot files for opensim.
+Code also works for c3d files containing only mocap or force data.
+
+If using miniconda, use the following lines to run:
+conda activate *your environment*
+cd *folder where this code is located*
+python C3D2OS.py
+"""
+FilterOrder = 4
+CutoffFrequency = 12
+
 
 def convert_c3d(c3d_dir, c3d_file):
 
@@ -68,7 +80,7 @@ def convert_c3d(c3d_dir, c3d_file):
     sample_rate = 1/(t[1]-t[0])
     for label in labels:
         f = forces.getDependentColumn(label)
-        list_mat.append(lowpass_filter(f, label, sample_rate, order=2, cutoff=10, padtype="odd", output_dir=c3d_dir))
+        list_mat.append(lowpass_filter(f, label, sample_rate, FilterOrder, CutoffFrequency, padtype="odd", output_dir=c3d_dir))
 
     # construct the matrix of the forces (forces, moments, torques / right and left)
     # (type opensim.Matrix)
@@ -116,8 +128,9 @@ def get_valid_padlen(signal, A, B):
         padlen = signal_length - 1
     return padlen
 
-def lowpass_filter(signal, label, sampling_freq, order=4, cutoff=12, padtype="odd", output_dir='.'):
-     
+def lowpass_filter(signal, label, sampling_freq, FilterOrder, CutoffFrequency, padtype="odd", output_dir='.'):
+    order = FilterOrder
+    cutoff = CutoffFrequency
     # instantiate variables
     n_frames = signal.nrow()
     signal_np = np.zeros((n_frames))
