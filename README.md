@@ -1,4 +1,11 @@
-In order to code in Python with OpenSim, you need a properly set up Python environment to run your code. Below you can find a step-by-step guide on how to set up this environment.
+# Startup instructions
+In order to code in Python with OpenSim, you need a properly set up Python environment to run your code. Below you can find a step-by-step guide on how to set up this environment. With a functional setup, you can run all code in this repository:
+* ***c3d2OS.py:***  
+Takes a .c3d file or a folder containing .c3d files and converts these to .mot (forces) and .trc (marker trajectories) files.
+* ***OpenSim_BatchProcessing_IK_ID.py:***  
+Opens an input dialog allowing you to select options to run IK and/or ID. Requires different input files and folders based on desired processes to run. Step-by-step instructions can be found at the top of the code. Output is stored in a folder called OpenSim at the same level as the input data folder
+* ***ScaleMuscles.py:***  
+Scales max muscle forces for all muscles in a scaled muscle based on model mass and outputs a model with scales muscles
 
 # Option 1: PyCharm IDE
 1. Download and install PyCharm: https://www.jetbrains.com/pycharm/download/
@@ -15,6 +22,7 @@ In order to code in Python with OpenSim, you need a properly set up Python envir
 ```
 pip install numpy==1.23.5
 pip install scipy==1.10.1
+pip install pandas=2.0.3
 ```
 
 6. To install, go to the folder where the OpenSim link to Python is located (in this case C:\OpenSim 4.5\sdk\Python) and enter the following lines to install the opensim package:
@@ -45,6 +53,7 @@ conda activate opensim_env
 ```
 conda install -c opensim-org opensim
 pip install scipy==1.10.1
+pip install pandas=2.0.3
 ```
 
 6. You can now run python code with the opensim package. To test, navigate to the directory where c3d2OS.py is located and run with the following commands:
