@@ -505,7 +505,7 @@ def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, ID_outpu
 
     # Modify coordinates file (mot file)
     for elem in id_tool.iter("coordinates_file"):
-        elem.text = os.path.join(mot_path, f"{trial}_coordinates.mot")
+        elem.text = os.path.join(ID_output_path, f"../IK/{trial}_coordinates.mot")
 
     # Modify output storage file
     for elem in id_tool.iter("output_gen_force_file"):
@@ -571,12 +571,12 @@ if IK.get():
                 run_markerErrors(trc_file_path, ik_output_trc, trial)
     if ID.get():
         for folderfile in os.listdir(trc_path):
-            if folderfile.endswith("_coordinates.mot"):
-                trial = os.path.splitext(os.path.basename(folderfile))[0][:-12]
+            if folderfile.endswith(".mot"):
+                trial = os.path.splitext(os.path.basename(folderfile))[0]
                 ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
                     ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
-                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, mot_path)
+                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, trc_path)
                 generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
                 # model = opensim.Model(model_path)
                 try:
