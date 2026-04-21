@@ -220,7 +220,7 @@ ID_check.pack()
 # External Loads (starts disabled)
 ExternalLoads_check = tk.Checkbutton(
     tkroot,
-    text="Compute External loads",
+    text="Include External loads",
     variable=ExternalLoads,
     command=toggle_suboptions,
     state="disabled"
@@ -259,18 +259,6 @@ if ID.get():
     if not os.path.exists(ID_output_path):
         os.makedirs(ID_output_path)
         os.makedirs(os.path.join(ID_output_path, "setup"))
-
-
-# model_path = filedialog.askopenfilename(title="Select scaled OpenSim model", filetypes=[("OpenSim model file", "*.osim")])
-# IK_template_path = filedialog.askopenfilename(title="Select template IK setup file", filetypes=[("IK setup file", "*.xml")])
-# trc_path = filedialog.askdirectory(title="Select a folder containing .trc files for processing")
-
-# if IK.get():
-#     output_path = os.path.join(trc_path, "../OpenSim/IK")
-#     if not os.path.exists(output_path):
-#         os.makedirs(output_path)
-#         print(output_path)
-#         os.makedirs(os.path.join(output_path, "setup"))
 
 
 
@@ -492,7 +480,7 @@ def run_markerErrors(exp_trc, ik_trc, trial_name):
     return
 
 
-def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, trial):
+def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, ID_output_path, trial):
     """
     Generates multiple ID setup XML files from a template.
 
@@ -517,11 +505,11 @@ def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, trial):
 
     # Change results directory
     for elem in id_tool.iter("results_directory"):
-        elem.text = output_xml
+        elem.text = ID_output_path
 
     # Modify coordinates file (mot file)
     for elem in id_tool.iter("coordinates_file"):
-        elem.text = os.path.join(mot_path, f"{trial}.mot")
+        elem.text = os.path.join(mot_path, f"{trial}_coordinates.mot")
 
     # Modify output storage file
     for elem in id_tool.iter("output_gen_force_file"):
@@ -533,7 +521,7 @@ def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, trial):
 
     # Modify External loads file
     for elem in root.iter("external_loads_file"):
-        elem.text = os.path.join(output_xml, f"setup/{trial}_ExternalLoads.xml")
+        elem.text = output_xml.replace(f"setup/{trial}_ID_setup.xml", f"setup/{trial}_ExternalLoads.xml")
 
     # Save the modified XML file
     tree.write(output_xml, encoding="utf-8", xml_declaration=True)
@@ -583,16 +571,17 @@ if IK.get():
                 print(f"   Reason: {e}")
                 continue
             if MarkerErrors.get():
-                trc_file_path = os.paht.join(trc_path, folderfile)
+                trc_file_path = os.path.join(trc_path, folderfile)
                 run_markerErrors(trc_file_path, ik_output_trc, trial)
     if ID.get():
         for folderfile in os.listdir(trc_path):
-            if folderfile.endswith(".mot"):
-                trial = os.path.splitext(os.path.basename(folderfile))[0]
-                ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_IK_setup.xml")
+            if folderfile.endswith("_coordinates.mot"):
+                trial = os.path.splitext(os.path.basename(folderfile))[0][:-12]
+                ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
-                    generate_loads_xml(loads_template_path, ID_xml_file, folderfile)
-                generate_id_xml(ID_template_path, model_path, trc_path, ID_xml_file, trial)
+                    ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
+                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, mot_path)
+                generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
                 # model = opensim.Model(model_path)
                 try:
                     run_inverse_dynamics(ID_xml_file)
@@ -606,12 +595,13 @@ else:
     print("Skipped IK")
     if ID.get():
         for folderfile in os.listdir(mot_path):
-            if folderfile.endswith(".mot"):
-                trial = os.path.splitext(os.path.basename(folderfile))[0]
+            if folderfile.endswith("_coordinates.mot"):
+                trial = os.path.splitext(os.path.basename(folderfile))[0][:-12]
                 ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
-                    generate_loads_xml(loads_template_path, ID_xml_file, folderfile)
-                generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, trial)
+                    ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
+                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, mot_path)
+                generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
                 # model = opensim.Model(model_path)
                 try:
                     run_inverse_dynamics(ID_xml_file)
