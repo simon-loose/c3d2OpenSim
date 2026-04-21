@@ -178,7 +178,7 @@ trc_folder_button = tk.Button(
 trc_folder_button.pack()
 
 # mot folder selection
-tk.Label(tkroot, text="Select a folder containing .mot files for processing:").pack()
+tk.Label(tkroot, text="Select a folder containing IK output .mot files (should end with /OpenSim/IK) for processing:").pack()
 mot_folder_entry = tk.Entry(tkroot, textvariable=mot_path, width=100, state="disabled")
 mot_folder_entry.pack()
 
@@ -233,29 +233,25 @@ tk.Button(tkroot, text="OK", command=submit).pack()
 tkroot.mainloop()
 
 
-
-
-
-#Select model, template file and directory for input trc files
-# root = tk.Tk()
-# root.withdraw()
 model_path = model_path.get()
 
 if IK.get():
     trc_path = trc_path.get()
+    mot_path = trc_path
     IK_template_path = IK_template_path.get()
-    IK_output_path = os.path.join(trc_path, "../OpenSim/IK")
+    IK_output_path = os.path.join(trc_path, "OpenSim/IK")
     if not os.path.exists(IK_output_path):
         os.makedirs(IK_output_path)
         os.makedirs(os.path.join(IK_output_path, "setup"))
+
 elif ID.get():
     mot_path = mot_path.get()
 if ID.get():
     ID_template_path = ID_template_path.get()
     if IK.get():
-        ID_output_path = os.path.join(trc_path, "../OpenSim/ID")
+        ID_output_path = os.path.join(trc_path, "OpenSim/ID")
     else:
-        ID_output_path = os.path.join(mot_path, "../OpenSim/ID")
+        ID_output_path = os.path.join(mot_path, "../ID")
     if not os.path.exists(ID_output_path):
         os.makedirs(ID_output_path)
         os.makedirs(os.path.join(ID_output_path, "setup"))
@@ -600,7 +596,8 @@ else:
                 ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
                     ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
-                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, mot_path)
+                    force_mot_path = os.path.join(mot_path, "../..")
+                    generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, force_mot_path)
                 generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
                 # model = opensim.Model(model_path)
                 try:
