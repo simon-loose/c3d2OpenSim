@@ -20,6 +20,15 @@ Steps:
 - Select folder with .trc files (or .mot files for ID only) to process
 - Click "OK" to start processing
 - Wait for code to finish and check if errors were thrown during batch processing
+
+This code assumes the following folder structure (if it does not exist, it will be created):
+-Data (should contain the following files: trial_markers.trc, trial_forces.mot)
+    -OpenSim
+        -IK (trial_coordinates.mot files will be output here)
+            -Setup (trial_IK_setup.xml and trial_errors.txt files will be output here)
+        -ID (ID_results_trial.sto files will be output here)
+            -Setup (trial_ID_setup.xml and trial_ExternalLoads.xml files will be output here)
+
 """
 
 def select_model(title, file_type):
@@ -384,7 +393,7 @@ def compute_marker_errors(exp_markers_file, model_markers, time_ik, ik_marker_la
 
     return errors, RMSEcomps, RMSEmarker, RMSEdistance, names
 
-def generate_ik_xml(IK_template_file, model_file, trc_folder, output_xml, trial_name, mot_filepath, ik_marker_locs):
+def generate_ik_xml(IK_template_file, model_file, trc_folder, output_xml, trial_name, mot_filepath, ik_marker_locs, timerange):
 
     # Load the template XML file
     tree = ET.parse(IK_template_file)
@@ -403,7 +412,7 @@ def generate_ik_xml(IK_template_file, model_file, trc_folder, output_xml, trial_
 
     # Modify marker file (TRC file)
     for elem in ik_tool.iter("marker_file"):
-        elem.text = os.path.join(trc_folder, f"{trial_name}.trc")
+        elem.text = os.path.join(trc_folder, f"{trial_name}_markers.trc")
 
     # Modify output motion file
     for elem in ik_tool.iter("output_motion_file"):
@@ -411,7 +420,8 @@ def generate_ik_xml(IK_template_file, model_file, trc_folder, output_xml, trial_
 
     # Modify time range
     for elem in root.iter("time_range"):
-        elem.text = "0 9999"
+        # elem.text = f"0 9999"
+        elem.text = f"{timerange[0]} {timerange[1]}"
 
     # Report marker locations to compute errors per marker
     report_marker_locs_found = False
@@ -476,7 +486,7 @@ def run_markerErrors(exp_trc, ik_trc, trial_name):
     return
 
 
-def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, ID_output_path, trial):
+def generate_id_xml(ID_template_file, model_file, output_xml, ID_output_path, trial, timerange, ExternalLoads):
     """
     Generates multiple ID setup XML files from a template.
 
@@ -513,11 +523,13 @@ def generate_id_xml(ID_template_file, model_file, mot_path, output_xml, ID_outpu
 
     # Modify time range
     for elem in root.iter("time_range"):
-        elem.text = "0 9999"
+        elem.text = f"{timerange[0]} {timerange[1]}"
+        print(f"{timerange[0]} {timerange[1]}")
 
     # Modify External loads file
-    for elem in root.iter("external_loads_file"):
-        elem.text = output_xml.replace(f"setup/{trial}_ID_setup.xml", f"setup/{trial}_ExternalLoads.xml")
+    if ExternalLoads:
+        for elem in root.iter("external_loads_file"):
+            elem.text = output_xml.replace(f"setup/{trial}_ID_setup.xml", f"setup/{trial}_ExternalLoads.xml")
 
     # Save the modified XML file
     tree.write(output_xml, encoding="utf-8", xml_declaration=True)
@@ -539,7 +551,7 @@ def generate_loads_xml(Loads_template_file, output_xml, mot_filepath):
 
     # Change force file (sto file)
     for elem in ex_loads.iter("datafile"):
-        elem.text = os.path.join(mot_filepath, f"{trial}.mot")
+        elem.text = os.path.join(mot_filepath, f"{trial}_forces.mot")
 
     # Save the modified XML file
     tree.write(output_xml, encoding="utf-8", xml_declaration=True)
@@ -553,12 +565,14 @@ def run_inverse_dynamics(xml_file):
 
 if IK.get():
     for folderfile in os.listdir(trc_path):
-        if folderfile.endswith(".trc"):
-            trial = os.path.splitext(os.path.basename(folderfile))[0]
+        if folderfile.endswith("_markers.trc"):
+            trial = os.path.splitext(os.path.basename(folderfile))[0][:-8]
+            time = read_trc(trc_path + "/" + folderfile)[1]
+            timerange = [time[0], time[-1]]
             IK_xml_file = os.path.join(IK_output_path, f"setup/{trial}_IK_setup.xml")
             mot = os.path.join(IK_output_path, f"{trial}_coordinates.mot")
             ik_output_trc = os.path.join(IK_output_path, f"setup/IK_Markers_{trial}_ik_model_marker_locations.sto")
-            generate_ik_xml(IK_template_path, model_path, trc_path, IK_xml_file, trial, mot, f"IK_Markers_{trial}")
+            generate_ik_xml(IK_template_path, model_path, trc_path, IK_xml_file, trial, mot, f"IK_Markers_{trial}", timerange)
             model = opensim.Model(model_path)
             try:
                 run_inverse_kinematics(IK_xml_file)
@@ -571,14 +585,13 @@ if IK.get():
                 run_markerErrors(trc_file_path, ik_output_trc, trial)
     if ID.get():
         for folderfile in os.listdir(trc_path):
-            if folderfile.endswith(".mot"):
-                trial = os.path.splitext(os.path.basename(folderfile))[0]
+            if folderfile.endswith("_forces.mot"):
+                trial = os.path.splitext(os.path.basename(folderfile))[0][:-7]
                 ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
                     ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
                     generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, trc_path)
-                generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
-                # model = opensim.Model(model_path)
+                generate_id_xml(ID_template_path, model_path, ID_xml_file, ID_output_path, trial, timerange)
                 try:
                     run_inverse_dynamics(ID_xml_file)
                 except Exception as e:
@@ -593,13 +606,16 @@ else:
         for folderfile in os.listdir(mot_path):
             if folderfile.endswith("_coordinates.mot"):
                 trial = os.path.splitext(os.path.basename(folderfile))[0][:-12]
+                filetrc = os.path.join(mot_path, f"../../{trial}_markers.trc")
+                time = read_trc(filetrc)[1]
+                timerange = [time[0], time[-1]]
+                print(timerange)
                 ID_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ID_setup.xml")
                 if ExternalLoads.get():
                     ExternalLoads_xml_file = os.path.join(ID_output_path, f"setup/{trial}_ExternalLoads.xml")
                     force_mot_path = os.path.join(mot_path, "../..")
                     generate_loads_xml(ExternalLoads_template_path.get(), ExternalLoads_xml_file, force_mot_path)
-                generate_id_xml(ID_template_path, model_path, mot_path, ID_xml_file, ID_output_path, trial)
-                # model = opensim.Model(model_path)
+                generate_id_xml(ID_template_path, model_path, ID_xml_file, ID_output_path, trial, timerange, ExternalLoads.get())
                 try:
                     run_inverse_dynamics(ID_xml_file)
                 except Exception as e:
