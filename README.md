@@ -22,7 +22,7 @@ Scales max muscle forces for all muscles in a scaled muscle based on model mass 
 ```
 pip install numpy==1.23.5
 pip install scipy==1.10.1
-pip install pandas=2.0.3
+pip install pandas==2.0.3
 ```
 
 6. To install, go to the folder where the OpenSim link to Python is located (in this case C:\OpenSim 4.5\sdk\Python) and enter the following lines to install the opensim package:
