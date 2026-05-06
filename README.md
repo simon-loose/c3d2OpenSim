@@ -53,7 +53,7 @@ conda activate opensim_env
 ```
 conda install -c opensim-org opensim
 pip install scipy==1.10.1
-pip install pandas=2.0.3
+pip install pandas==2.0.3
 ```
 
 6. You can now run python code with the opensim package. To test, navigate to the directory where c3d2OS.py is located and run with the following commands:
